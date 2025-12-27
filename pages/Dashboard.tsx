@@ -67,11 +67,34 @@ const Dashboard: React.FC = () => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dayStr = d.toISOString().split('T')[0];
+      
+      // 将日期转换为本地时间的年-月-日格式，解决时区问题
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dayStr = `${year}-${month}-${day}`;
+      
       return {
-        date: dayStr.split('-').slice(1).join('/'),
-        新增: schedules.filter(s => s.createdAt?.startsWith(dayStr)).length,
-        完成: schedules.filter(s => s.createdAt?.startsWith(dayStr) && s.isCompleted).length
+        date: `${month}/${day}`,
+        新增: schedules.filter(s => {
+          if (!s.createdAt) return false;
+          // 将createdAt转换为本地时间的年-月-日格式进行比较
+          const createdAtDate = new Date(s.createdAt);
+          const createdAtYear = createdAtDate.getFullYear();
+          const createdAtMonth = String(createdAtDate.getMonth() + 1).padStart(2, '0');
+          const createdAtDay = String(createdAtDate.getDate()).padStart(2, '0');
+          const createdAtDayStr = `${createdAtYear}-${createdAtMonth}-${createdAtDay}`;
+          return createdAtDayStr === dayStr;
+        }).length,
+        完成: schedules.filter(s => {
+          if (!s.createdAt) return false;
+          const createdAtDate = new Date(s.createdAt);
+          const createdAtYear = createdAtDate.getFullYear();
+          const createdAtMonth = String(createdAtDate.getMonth() + 1).padStart(2, '0');
+          const createdAtDay = String(createdAtDate.getDate()).padStart(2, '0');
+          const createdAtDayStr = `${createdAtYear}-${createdAtMonth}-${createdAtDay}`;
+          return createdAtDayStr === dayStr && s.isCompleted;
+        }).length
       };
     }).reverse();
     return last7Days;

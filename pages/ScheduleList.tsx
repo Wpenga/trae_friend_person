@@ -1,25 +1,67 @@
 
 import React, { useState, useMemo } from 'react';
+import { Calendar as CalendarIcon, Trash2, Edit3, CheckCircle, Circle, Filter, Search, ChevronLeft, ChevronRight, ListTodo, AlertCircle } from 'lucide-react';
 import { useSchedules } from '../store/ScheduleContext';
 import { Priority, Category, Schedule } from '../types';
-import { 
-  Trash2, 
-  Edit3, 
-  CheckCircle, 
-  Circle, 
-  Filter, 
-  Search, 
-  ChevronRight,
-  ChevronLeft,
-  ListTodo,
-  AlertCircle
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ScheduleList: React.FC = () => {
   const { state, dispatch } = useSchedules();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // 日历视图状态管理
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  
+  // 获取当月的个人事项日程
+  const personalSchedules = useMemo(() => {
+    return state.schedules.filter(s => s.category === Category.PERSONAL);
+  }, [state.schedules]);
+  
+  // 生成日历数据
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days = [];
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  }, [currentYear, currentMonth]);
+  
+  // 获取某天的日程
+  const getSchedulesForDate = (date: Date) => {
+    return personalSchedules.filter(schedule => {
+      const scheduleDate = new Date(schedule.startTime);
+      return scheduleDate.getDate() === date.getDate() &&
+             scheduleDate.getMonth() === date.getMonth() &&
+             scheduleDate.getFullYear() === date.getFullYear();
+    });
+  };
+  
+  // 月份导航
+  const prevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentYear(currentYear - 1);
+      setCurrentMonth(11);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+  
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentYear(currentYear + 1);
+      setCurrentMonth(0);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+  };
 
   const filteredSchedules = useMemo(() => {
     return state.schedules.filter(s => {
@@ -76,6 +118,75 @@ const ScheduleList: React.FC = () => {
           >
             <Filter size={20} />
           </button>
+        </div>
+      </div>
+      
+      {/* 日历视图 */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <CalendarIcon size={20} />
+            个人事项日历视图
+          </h3>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={prevMonth} 
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <span className="font-medium">
+              {new Date(currentYear, currentMonth).toLocaleDateString('zh-CN', { month: 'long', year: 'numeric' })}
+            </span>
+            <button 
+              onClick={nextMonth} 
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-600"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* 星期标题 */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['日', '一', '二', '三', '四', '五', '六'].map(day => (
+            <div key={day} className="text-center text-sm font-semibold text-slate-500 py-2">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        {/* 日历网格 */}
+        <div className="grid grid-cols-7 gap-1">
+          {calendarDays.map((date, index) => {
+            const schedules = getSchedulesForDate(date);
+            const isCurrentMonth = date.getMonth() === currentMonth;
+            const isToday = date.toDateString() === new Date().toDateString();
+            
+            return (
+              <div 
+                key={index} 
+                className={`p-2 rounded-lg min-h-[100px] border transition-all ${isCurrentMonth ? 'bg-white' : 'bg-slate-50'}`}
+              >
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium mb-1 ${isToday ? 'bg-indigo-600 text-white' : isCurrentMonth ? 'text-slate-800' : 'text-slate-300'}`}>
+                  {date.getDate()}
+                </div>
+                
+                {/* 显示该日期的个人事项 */}
+                <div className="space-y-1 max-h-[80px] overflow-y-auto">
+                  {schedules.map((schedule, scheduleIndex) => (
+                    <div 
+                      key={scheduleIndex} 
+                      className={`text-xs p-1 rounded truncate ${schedule.isCompleted ? 'bg-slate-100 text-slate-500 line-through' : 'bg-indigo-50 text-indigo-700'}`}
+                      title={schedule.title}
+                    >
+                      {schedule.title}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
