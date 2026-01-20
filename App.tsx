@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
-import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { ScheduleProvider } from './store/ScheduleContext';
 import Dashboard from './pages/Dashboard';
 import ScheduleList from './pages/ScheduleList';
 import ScheduleForm from './pages/ScheduleForm';
+import Login from './pages/Login';
 import { 
   LayoutDashboard, 
   ListTodo, 
@@ -13,15 +13,16 @@ import {
   Search, 
   Bell, 
   Menu, 
-  X 
+  X,
+  LogOut
 } from 'lucide-react';
 
-const Sidebar = ({ isOpen, toggle }: { isOpen: boolean, toggle: () => void }) => {
+const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => void, onLogout: () => void }) => {
   const location = useLocation();
   const navItems = [
     { path: '/', label: '仪表盘', icon: LayoutDashboard },
-    { path: '/list', label: '日程列表', icon: ListTodo },
-    { path: '/add', label: '新增日程', icon: PlusCircle },
+    { path: '/list', label: '题目列表', icon: ListTodo },
+    { path: '/add', label: '新增题目', icon: PlusCircle },
   ];
 
   return (
@@ -42,7 +43,7 @@ const Sidebar = ({ isOpen, toggle }: { isOpen: boolean, toggle: () => void }) =>
           <div className="p-6 flex items-center gap-3">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              个人日程记录
+              摩托车题库管理
             </h1>
           </div>
           
@@ -64,10 +65,17 @@ const Sidebar = ({ isOpen, toggle }: { isOpen: boolean, toggle: () => void }) =>
             ))}
           </nav>
 
-          <div className="p-4 border-t border-slate-100">
+          <div className="p-4 border-t border-slate-100 space-y-2">
             <button className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 w-full rounded-xl transition-all">
               <Settings size={20} />
               设置中心
+            </button>
+             <button 
+               onClick={onLogout}
+               className="flex items-center gap-3 px-4 py-3 text-rose-600 hover:bg-rose-50 w-full rounded-xl transition-all"
+             >
+              <LogOut size={20} />
+              退出登录
             </button>
           </div>
         </div>
@@ -87,7 +95,7 @@ const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
         <Search size={18} className="text-slate-400" />
         <input 
           type="text" 
-          placeholder="搜索日程标题或内容..." 
+          placeholder="搜索题目..." 
           className="bg-transparent border-none focus:ring-0 ml-2 w-full text-sm"
         />
       </div>
@@ -103,26 +111,62 @@ const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
   );
 };
 
-const App: React.FC = () => {
+const ProtectedLayout = ({ children, onLogout }: { children: React.ReactNode, onLogout: () => void }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  return (
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      <Sidebar isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(!isSidebarOpen)} onLogout={onLogout} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header toggleSidebar={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  // Simple auth state persistence using localStorage
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('auth') === 'true';
+  });
+
+  const handleLogin = (status: boolean) => {
+    setIsAuthenticated(status);
+    if (status) localStorage.setItem('auth', 'true');
+    else localStorage.removeItem('auth');
+  };
+
+  const handleLogout = () => {
+    handleLogin(false);
+  };
 
   return (
     <ScheduleProvider>
       <Router>
-        <div className="flex h-screen overflow-hidden bg-slate-50">
-          <Sidebar isOpen={isSidebarOpen} toggle={() => setIsSidebarOpen(!isSidebarOpen)} />
-          <div className="flex-1 flex flex-col min-w-0">
-            <Header toggleSidebar={() => setIsSidebarOpen(true)} />
-            <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/list" element={<ScheduleList />} />
-                <Route path="/add" element={<ScheduleForm />} />
-                <Route path="/edit/:id" element={<ScheduleForm />} />
-              </Routes>
-            </main>
-          </div>
-        </div>
+        <Routes>
+          <Route path="/login" element={
+            !isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />
+          } />
+          
+          <Route path="/*" element={
+            isAuthenticated ? (
+              <ProtectedLayout onLogout={handleLogout}>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/list" element={<ScheduleList />} />
+                  <Route path="/add" element={<ScheduleForm />} />
+                  <Route path="/edit/:id" element={<ScheduleForm />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </ProtectedLayout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+        </Routes>
       </Router>
     </ScheduleProvider>
   );

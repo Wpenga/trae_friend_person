@@ -10,6 +10,19 @@ export enum Category {
   PERSONAL = '个人日常'
 }
 
+export interface Question {
+  id: number;
+  question: string;
+  answer: string;
+  item1: string;
+  item2: string;
+  item3: string;
+  item4: string;
+  explains: string;
+  url: string;
+  type: number;
+}
+
 export interface Schedule {
   id: string;
   title: string;
