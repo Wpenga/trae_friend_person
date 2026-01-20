@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Question } from '../types';
-import questionsData from '../src/data/questions.json';
+import questionsData4 from '../src/data/questions.json';
+import questionsData1 from '../src/data/questions_kemu1.json';
 import { 
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend 
 } from 'recharts';
@@ -12,7 +13,8 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-const questions = questionsData as unknown as Question[];
+const questions4 = questionsData4 as unknown as Question[];
+const questions1 = questionsData1 as unknown as Question[];
 
 const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start justify-between">
@@ -32,6 +34,12 @@ const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
 );
 
 const Dashboard: React.FC = () => {
+  const [subject, setSubject] = useState<'4' | '1'>('4');
+  
+  const questions = useMemo(() => {
+    return subject === '4' ? questions4 : questions1;
+  }, [subject]);
+
   const stats = useMemo(() => {
     const total = questions.length;
     const type0 = questions.filter(q => q.type === 0).length;
@@ -41,7 +49,7 @@ const Dashboard: React.FC = () => {
     const withImage = questions.filter(q => q.url && q.url.trim() !== '').length;
 
     return { total, type0, type1, type2, withImage };
-  }, []);
+  }, [questions]);
 
   const typeData = useMemo(() => {
     // Group by type dynamically
@@ -62,7 +70,7 @@ const Dashboard: React.FC = () => {
         value: counts[key]
       };
     });
-  }, []);
+  }, [questions]);
 
   const COLORS = ['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f59e0b'];
 
@@ -71,7 +79,30 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">驾考宝典题库概览</h2>
-          <p className="text-slate-500">科目四顺序题统计数据。</p>
+          <p className="text-slate-500">当前查看：{subject === '4' ? '科目四' : '科目一'}题库统计数据。</p>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200">
+          <button
+            onClick={() => setSubject('1')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              subject === '1' 
+                ? 'bg-indigo-600 text-white shadow-sm' 
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            科目一
+          </button>
+          <button
+            onClick={() => setSubject('4')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              subject === '4' 
+                ? 'bg-indigo-600 text-white shadow-sm' 
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            科目四
+          </button>
         </div>
       </div>
 

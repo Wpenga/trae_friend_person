@@ -1,16 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { Question } from '../types';
-import questionsData from '../src/data/questions.json';
+import questionsData4 from '../src/data/questions.json';
+import questionsData1 from '../src/data/questions_kemu1.json';
 import { Search, Eye, X, CheckCircle2 } from 'lucide-react';
 
-const questions = questionsData as unknown as Question[];
+const questions4 = questionsData4 as unknown as Question[];
+const questions1 = questionsData1 as unknown as Question[];
 
 const ScheduleList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [subject, setSubject] = useState<'4' | '1'>('4');
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+
+  const questions = useMemo(() => {
+    return subject === '4' ? questions4 : questions1;
+  }, [subject]);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
@@ -18,7 +25,7 @@ const ScheduleList: React.FC = () => {
       const matchesType = filterType === 'all' || q.type === Number(filterType);
       return matchesSearch && matchesType;
     });
-  }, [searchTerm, filterType]);
+  }, [questions, searchTerm, filterType]);
 
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
   const currentQuestions = filteredQuestions.slice(
@@ -30,7 +37,32 @@ const ScheduleList: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
        {/* Search Header */}
        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-         <h2 className="text-2xl font-bold text-slate-800">题目列表</h2>
+         <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-bold text-slate-800">题目列表</h2>
+            <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200">
+              <button
+                onClick={() => { setSubject('1'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  subject === '1' 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                科目一
+              </button>
+              <button
+                onClick={() => { setSubject('4'); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  subject === '4' 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                科目四
+              </button>
+            </div>
+         </div>
+         
          <div className="relative flex items-center gap-4">
            <select
              value={filterType}
